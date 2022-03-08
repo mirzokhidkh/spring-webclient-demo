@@ -22,9 +22,7 @@ public class ClientController {
 
     @PostMapping(value = "/receive",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> receiver(@RequestBody ReceiverRequest receiverRequest) {
-
         return clientService.receiver(receiverRequest);
-
     }
 
 }

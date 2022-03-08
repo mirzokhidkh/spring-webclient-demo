@@ -15,6 +15,11 @@ import reactor.netty.transport.ProxyProvider;
 import uz.mk.springbootwebflux.model.ReceiverRequest;
 import uz.mk.springbootwebflux.model.payload.RequestBodyDTO;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 @Service
 public class ClientService {
 
@@ -23,14 +28,15 @@ public class ClientService {
     public ResponseEntity<?> receiver(ReceiverRequest receiverRequest) {
         ResponseEntity<?> responseEntity = null;
 
-        HttpClient httpClient = HttpClient.create()
-                .tcpConfiguration(tcpClient -> tcpClient
-                        .proxy(proxy -> proxy
-                                .type(ProxyProvider.Proxy.HTTP)
-                                .host("10.50.71.253")
-                                .port(3128)));
+//        HttpClient httpClient = HttpClient.create()
+//                .tcpConfiguration(tcpClient -> tcpClient
+//                        .proxy(proxy -> proxy
+//                                .type(ProxyProvider.Proxy.HTTP)
+//                                .host("10.50.71.253")
+//                                .port(3128)));
 
-        ReactorClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
+//        ReactorClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
+        ReactorClientHttpConnector connector = new ReactorClientHttpConnector();
 
         webClient = WebClient.builder()
                 .clientConnector(connector)
@@ -39,20 +45,18 @@ public class ClientService {
                 .build();
 
 
-        String strUrl;
-        strUrl = "/" + receiverRequest.getMethodName();
+        String apiUrl;
+        apiUrl = "/" + receiverRequest.getMethodName();
 
         Object requestBody = receiverRequest.getRequestBody();
         if (requestBody != null) {
-//            System.out.println("receiverRequest.getRequestBody() = " + requestBodyAsString);
-
             ObjectMapper objectMapper = new ObjectMapper();
             RequestBodyDTO requestBodyDTO =
                     objectMapper.convertValue(requestBody, new TypeReference<RequestBodyDTO>() {
                     });
 
             if (requestBodyDTO.getId() != null) {
-                strUrl += "/" + requestBodyDTO.getId();
+                apiUrl += "/" + requestBodyDTO.getId();
             }
 
         }
@@ -61,26 +65,40 @@ public class ClientService {
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
                 webClient
-                        .get()
-                        .uri(strUrl)
-//                        .uri(receiverRequest.getServiceUrl()+"/" + receiverRequest.getMethodName())
+                        .post()
+                        .uri(apiUrl)
                         .accept(MediaType.APPLICATION_JSON)
                         .retrieve()
                         .bodyToMono(Object[].class).log();
 
                 break;
             case GET:
-                Mono<Object[]> response = webClient
-                        .get()
-                        .uri(strUrl)
-//                        .uri(receiverRequest.getServiceUrl()+"/" + receiverRequest.getMethodName())
-                        .accept(MediaType.APPLICATION_JSON)
-                        .retrieve()
-                        .bodyToMono(Object[].class).log();
+                boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();
+                if (isOneResource) {
+                    Mono<Object> response = webClient
+                            .get()
+                            .uri(apiUrl)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .retrieve()
+                            .bodyToMono(Object.class).log();
 
-                Object[] objects = response.block();
+                    Object object = response.share().block();
 
-                responseEntity = ResponseEntity.ok().body(objects);
+                    responseEntity = ResponseEntity.ok().body(object);
+                }else {
+                    Mono<Object[]> response = webClient
+                            .get()
+                            .uri(apiUrl)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .retrieve()
+                            .bodyToMono(Object[].class).log();
+
+                    Object[] objects = response.share().block();
+
+//                    List<Object> collect = Arrays.stream(objects).collect(Collectors.toList());
+                    responseEntity = ResponseEntity.ok().body(objects);
+                }
+
                 break;
             case PUT:
 
