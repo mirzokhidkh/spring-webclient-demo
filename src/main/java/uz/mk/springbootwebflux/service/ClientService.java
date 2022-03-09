@@ -58,25 +58,27 @@ public class ClientService {
 
         }
 
-
+        Mono<Object> response;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
                 assert requestBodyDTO != null;
-                Mono<Object> getObj = webClient
+                response = webClient
                         .post()
                         .uri(apiUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
+                        .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.empty())
                         .bodyToMono(Object.class);
 
-                responseEntity = ResponseEntity.ok().body(getObj);
+                Object obj = response.block();
+                responseEntity = ResponseEntity.ok().body(obj);
 
                 break;
             case GET:
                 boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();
                 if (isOneResource) {
-                    Mono<Object> response = webClient
+                    response = webClient
                             .get()
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
@@ -88,14 +90,14 @@ public class ClientService {
 
                     responseEntity = ResponseEntity.ok().body(object);
                 }else {
-                    Mono<Object[]> response = webClient
+                    Mono<Object[]> responseArr = webClient
                             .get()
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
                             .bodyToMono(Object[].class).log();
 
-                    Object[] objects = response.share().block();
+                    Object[] objects = responseArr.share().block();
 
 //                    List<Object> collect = Arrays.stream(objects).collect(Collectors.toList());
                     responseEntity = ResponseEntity.ok().body(objects);
