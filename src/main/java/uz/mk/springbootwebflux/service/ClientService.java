@@ -2,8 +2,8 @@ package uz.mk.springbootwebflux.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -15,10 +15,7 @@ import reactor.netty.transport.ProxyProvider;
 import uz.mk.springbootwebflux.model.ReceiverRequest;
 import uz.mk.springbootwebflux.model.payload.RequestBodyDTO;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class ClientService {
@@ -28,18 +25,17 @@ public class ClientService {
     public ResponseEntity<?> receiver(ReceiverRequest receiverRequest) {
         ResponseEntity<?> responseEntity = null;
 
-//        HttpClient httpClient = HttpClient.create()
-//                .tcpConfiguration(tcpClient -> tcpClient
-//                        .proxy(proxy -> proxy
-//                                .type(ProxyProvider.Proxy.HTTP)
-//                                .host("10.50.71.253")
-//                                .port(3128)));
+        HttpClient httpClient = HttpClient.create()
+                .tcpConfiguration(tcpClient -> tcpClient
+                        .proxy(proxy -> proxy
+                                .type(ProxyProvider.Proxy.HTTP)
+                                .host("10.50.71.253")
+                                .port(3128)));
 
-//        ReactorClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
-        ReactorClientHttpConnector connector = new ReactorClientHttpConnector();
+        ReactorClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
 
         webClient = WebClient.builder()
-                .clientConnector(connector)
+//                .clientConnector(connector)
                 .baseUrl(receiverRequest.getServiceUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -49,9 +45,10 @@ public class ClientService {
         apiUrl = "/" + receiverRequest.getMethodName();
 
         Object requestBody = receiverRequest.getRequestBody();
+        RequestBodyDTO requestBodyDTO = null;
         if (requestBody != null) {
             ObjectMapper objectMapper = new ObjectMapper();
-            RequestBodyDTO requestBodyDTO =
+             requestBodyDTO =
                     objectMapper.convertValue(requestBody, new TypeReference<RequestBodyDTO>() {
                     });
 
@@ -64,12 +61,16 @@ public class ClientService {
 
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
-                webClient
+                assert requestBodyDTO != null;
+                Mono<Object> getObj = webClient
                         .post()
                         .uri(apiUrl)
-                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
-                        .bodyToMono(Object[].class).log();
+                        .bodyToMono(Object.class);
+
+                responseEntity = ResponseEntity.ok().body(getObj);
 
                 break;
             case GET:
@@ -80,9 +81,10 @@ public class ClientService {
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
+                            .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
                             .bodyToMono(Object.class).log();
 
-                    Object object = response.share().block();
+                    Object object = response.block();
 
                     responseEntity = ResponseEntity.ok().body(object);
                 }else {
