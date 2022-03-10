@@ -58,11 +58,11 @@ public class ClientService {
 
         }
 
-        Mono<Object> response;
+        Mono<Object> objectMono;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
                 assert requestBodyDTO != null;
-                response = webClient
+                objectMono = webClient
                         .post()
                         .uri(apiUrl)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,14 +71,15 @@ public class ClientService {
                         .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.empty())
                         .bodyToMono(Object.class);
 
-                Object obj = response.block();
-                responseEntity = ResponseEntity.ok().body(obj);
+//                Object obj = objectMono.block();
+//                responseEntity = ResponseEntity.ok().body(obj);
+                responseEntity = ResponseEntity.ok().body(objectMono);
 
                 break;
             case GET:
                 boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();
                 if (isOneResource) {
-                    response = webClient
+                    objectMono = webClient
                             .get()
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
@@ -86,9 +87,11 @@ public class ClientService {
                             .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
                             .bodyToMono(Object.class).log();
 
-                    Object object = response.block();
+                    Object object = objectMono.block();
 
-                    responseEntity = ResponseEntity.ok().body(object);
+//                    responseEntity = ResponseEntity.ok().body(object);
+                    responseEntity = ResponseEntity.ok().body(objectMono);
+
                 }else {
                     Mono<Object[]> responseArr = webClient
                             .get()
