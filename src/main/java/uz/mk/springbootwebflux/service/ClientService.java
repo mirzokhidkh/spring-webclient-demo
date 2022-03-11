@@ -2,6 +2,8 @@ package uz.mk.springbootwebflux.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,18 +15,18 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 import uz.mk.springbootwebflux.model.ReceiverRequest;
+import uz.mk.springbootwebflux.model.payload.ApiResponse;
 import uz.mk.springbootwebflux.model.payload.RequestBodyDTO;
 
 import java.util.regex.Pattern;
 
 @Service
 public class ClientService {
+    private static final Logger logger = LoggerFactory.getLogger(ClientService.class);
 
     private WebClient webClient;
 
-    public ResponseEntity<?> receiver(ReceiverRequest receiverRequest) {
-        ResponseEntity<?> responseEntity = null;
-
+    public Mono<?> receiver(ReceiverRequest receiverRequest) {
         HttpClient httpClient = HttpClient.create()
                 .tcpConfiguration(tcpClient -> tcpClient
                         .proxy(proxy -> proxy
@@ -48,7 +50,7 @@ public class ClientService {
         RequestBodyDTO requestBodyDTO = null;
         if (requestBody != null) {
             ObjectMapper objectMapper = new ObjectMapper();
-             requestBodyDTO =
+            requestBodyDTO =
                     objectMapper.convertValue(requestBody, new TypeReference<RequestBodyDTO>() {
                     });
 
@@ -58,62 +60,57 @@ public class ClientService {
 
         }
 
-        Mono<Object> objectMono;
+        Mono<?> objectMono = null;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
                 assert requestBodyDTO != null;
-                objectMono = webClient
-                        .post()
+                objectMono = webClient.post()
                         .uri(apiUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
                         .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.empty())
-                        .bodyToMono(Object.class);
-
-//                Object obj = objectMono.block();
-//                responseEntity = ResponseEntity.ok().body(obj);
-                responseEntity = ResponseEntity.ok().body(objectMono);
-
+                        .bodyToMono(ApiResponse.class);
                 break;
             case GET:
                 boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();
+
                 if (isOneResource) {
-                    objectMono = webClient
-                            .get()
+                    objectMono = webClient.get()
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
                             .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
-                            .bodyToMono(Object.class).log();
+                            .bodyToMono(ApiResponse.class);
 
-                    Object object = objectMono.block();
-
-//                    responseEntity = ResponseEntity.ok().body(object);
-                    responseEntity = ResponseEntity.ok().body(objectMono);
-
-                }else {
-                    Mono<Object[]> responseArr = webClient
-                            .get()
+                } else {
+                    objectMono = webClient.get()
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
-                            .bodyToMono(Object[].class).log();
+                            .bodyToMono(Object[].class);
 
-                    Object[] objects = responseArr.share().block();
-
-//                    List<Object> collect = Arrays.stream(objects).collect(Collectors.toList());
-                    responseEntity = ResponseEntity.ok().body(objects);
                 }
-
                 break;
             case PUT:
-
-
+                objectMono = webClient.put()
+                        .uri(apiUrl)
+                        .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
+                        .retrieve()
+                        .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
+                        .bodyToMono(ApiResponse.class);
+                break;
+            case DELETE:
+                objectMono = webClient.delete()
+                        .uri(apiUrl)
+                        .retrieve()
+                        .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
+                        .bodyToMono(ApiResponse.class);
                 break;
             default:
 
         }
-        return responseEntity;
+        return objectMono;
     }
+
 }
