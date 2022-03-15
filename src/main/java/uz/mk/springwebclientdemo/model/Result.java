@@ -1,4 +1,4 @@
-package uz.mk.springbootwebflux.model;
+package uz.mk.springwebclientdemo.model;
 
 
 public class Result extends ResultAsync {

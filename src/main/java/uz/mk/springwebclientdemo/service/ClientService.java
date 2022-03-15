@@ -1,50 +1,28 @@
-package uz.mk.springbootwebflux.service;
+package uz.mk.springwebclientdemo.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.ProxyProvider;
-import uz.mk.springbootwebflux.model.ReceiverRequest;
-import uz.mk.springbootwebflux.model.payload.ApiResponse;
-import uz.mk.springbootwebflux.model.payload.RequestBodyDTO;
+import uz.mk.springwebclientdemo.model.ReceiverRequest;
+import uz.mk.springwebclientdemo.model.payload.ApiResponse;
+import uz.mk.springwebclientdemo.model.payload.RequestBodyDTO;
 
 import java.util.regex.Pattern;
 
 @Service
 public class ClientService {
-    private static final Logger logger = LoggerFactory.getLogger(ClientService.class);
+    private final WebClient webClient;
 
-    private WebClient webClient;
+    public ClientService(WebClient webClient) {
+        this.webClient = webClient;
+    }
 
     public Mono<?> receiver(ReceiverRequest receiverRequest) {
-        HttpClient httpClient = HttpClient.create()
-                .tcpConfiguration(tcpClient -> tcpClient
-                        .proxy(proxy -> proxy
-                                .type(ProxyProvider.Proxy.HTTP)
-                                .host("10.50.71.253")
-                                .port(3128)));
-
-        ReactorClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
-
-        webClient = WebClient.builder()
-//                .clientConnector(connector)
-                .baseUrl(receiverRequest.getServiceUrl())
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-
-
-        String apiUrl;
-        apiUrl = "/" + receiverRequest.getMethodName();
+        String apiUrl = receiverRequest.getServiceUrl() + "/" + receiverRequest.getMethodName();
 
         Object requestBody = receiverRequest.getRequestBody();
         RequestBodyDTO requestBodyDTO = null;
@@ -54,9 +32,9 @@ public class ClientService {
                     objectMapper.convertValue(requestBody, new TypeReference<RequestBodyDTO>() {
                     });
 
-            if (requestBodyDTO.getId() != null) {
-                apiUrl += "/" + requestBodyDTO.getId();
-            }
+//            if (requestBodyDTO.getId() != null) {
+//                apiUrl += "/" + requestBodyDTO.getId();
+//            }
 
         }
 
@@ -69,7 +47,7 @@ public class ClientService {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
-                        .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.empty())
+                        .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.just(new Exception("Something went wrong")))
                         .bodyToMono(ApiResponse.class);
                 break;
             case GET:
@@ -93,6 +71,7 @@ public class ClientService {
                 }
                 break;
             case PUT:
+                assert requestBodyDTO != null;
                 objectMono = webClient.put()
                         .uri(apiUrl)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
@@ -110,7 +89,7 @@ public class ClientService {
             default:
 
         }
+
         return objectMono;
     }
-
 }

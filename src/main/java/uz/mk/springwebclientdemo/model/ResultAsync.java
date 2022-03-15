@@ -1,4 +1,4 @@
-package uz.mk.springbootwebflux.model;
+package uz.mk.springwebclientdemo.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

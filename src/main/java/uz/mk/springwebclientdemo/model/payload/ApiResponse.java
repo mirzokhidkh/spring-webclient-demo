@@ -1,4 +1,4 @@
-package uz.mk.springbootwebflux.model.payload;
+package uz.mk.springwebclientdemo.model.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

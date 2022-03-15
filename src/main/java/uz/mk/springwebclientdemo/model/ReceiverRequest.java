@@ -1,9 +1,9 @@
-package uz.mk.springbootwebflux.model;
+package uz.mk.springwebclientdemo.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uz.mk.springbootwebflux.model.enums.HttpMethodType;
+import uz.mk.springwebclientdemo.model.enums.HttpMethodType;
 
 @Data
 @AllArgsConstructor

@@ -1,4 +1,4 @@
-package uz.mk.springbootwebflux.model.payload;
+package uz.mk.springwebclientdemo.model.payload;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class RequestBodyDTO {
-    private Long id;
+//    private Long id;
 
     private String name;
 

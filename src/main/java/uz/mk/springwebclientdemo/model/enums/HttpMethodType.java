@@ -1,4 +1,4 @@
-package uz.mk.springbootwebflux.model.enums;
+package uz.mk.springwebclientdemo.model.enums;
 
 public enum HttpMethodType {
     POST("POST"), GET("GET"), PUT("PUT"), DELETE("DELETE");

@@ -1,9 +1,9 @@
-package uz.mk.springbootwebflux;
+package uz.mk.springwebclientdemo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootApplication
 public class SpringBootWebfluxApplication {
@@ -12,4 +12,8 @@ public class SpringBootWebfluxApplication {
         SpringApplication.run(SpringBootWebfluxApplication.class, args);
     }
 
+    @Bean
+    public ObjectMapper getObjectMapper() {
+        return new ObjectMapper();
+    }
 }
