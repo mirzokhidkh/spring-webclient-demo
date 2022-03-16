@@ -2,7 +2,6 @@ package uz.mk.springwebclientdemo.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(value = {"responseBody", "oraMsg"})
 public class ResultAsync {
     private int code;
     private String msg;

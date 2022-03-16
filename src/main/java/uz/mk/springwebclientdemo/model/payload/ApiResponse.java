@@ -7,9 +7,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Jacksonized
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ApiResponse {
@@ -17,9 +21,24 @@ public class ApiResponse {
     private boolean status;
     @JsonProperty("object")
     private Object object;
+    private List<?> dataList;
+    private Map<String, Object> meta = new HashMap<>();
+
 
     public ApiResponse(String message, boolean status) {
         this.message = message;
         this.status = status;
+    }
+
+    public ApiResponse(String message, boolean status, Object object) {
+        this.message = message;
+        this.status = status;
+        this.object = object;
+    }
+
+    public ApiResponse(String message, boolean status, List<Object> dataList) {
+        this.message = message;
+        this.status = status;
+        this.dataList = dataList;
     }
 }

@@ -1,31 +1,21 @@
 package uz.mk.springwebclientdemo.config;
 
 import io.netty.channel.ChannelOption;
-import io.netty.handler.logging.LogLevel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ClientHttpConnector;
-import org.springframework.http.client.reactive.ClientHttpRequest;
-import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
-import org.springframework.web.reactive.function.BodyInserter;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.logging.AdvancedByteBufFormat;
-import uz.mk.springwebclientdemo.model.payload.ApiResponse;
+import uz.mk.springwebclientdemo.util.WebClientFilter;
 
-@Slf4j
+//@Slf4j
 @Configuration
 @EnableWebFlux
 public class WebFluxConfig implements WebFluxConfigurer {
@@ -63,8 +53,9 @@ public class WebFluxConfig implements WebFluxConfigurer {
                 .clientConnector(connector)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .filters(exchangeFilterFunctions -> {
-                    exchangeFilterFunctions.add(logRequest());
-                    exchangeFilterFunctions.add(logResponse());
+//                    exchangeFilterFunctions.add(WebClientFilter.logRequest());
+//                    exchangeFilterFunctions.add(WebClientFilter.logResponse());
+                    exchangeFilterFunctions.add(WebClientFilter.errorHandler());
                 })
                 .build();
     }
@@ -74,33 +65,5 @@ public class WebFluxConfig implements WebFluxConfigurer {
 //        configurer.defaultCodecs().enableLoggingRequestDetails(true);
 //    }
 
-    private static ExchangeFilterFunction logRequest() {
-        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-//            log.info("Request: {} {}", clientRequest.method(), clientRequest.url());
-//            clientRequest.headers().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
-            return Mono.just(clientRequest);
-        });
-    }
 
-    private static ExchangeFilterFunction logResponse() {
-        return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-//            log.info("Response status: {}", clientResponse.statusCode());
-//            clientResponse.headers().asHttpHeaders().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
-            return Mono.just(clientResponse);
-        });
-    }
-
-//    ExchangeFilterFunction logRequest() {
-//        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-//            if (log.isDebugEnabled()) {
-//                StringBuilder sb = new StringBuilder("Request: \n");
-//                //append clientRequest method and url
-//                clientRequest
-//                        .headers()
-//                        .forEach((name, values) -> values.forEach(value -> /* append header key/value */));
-//                log.debug(sb.toString());
-//            }
-//            return Mono.just(clientRequest);
-//        });
-//    }
 }

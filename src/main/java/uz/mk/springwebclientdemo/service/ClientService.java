@@ -9,8 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
+import uz.mk.springwebclientdemo.exception.CustomBadRequestException;
 import uz.mk.springwebclientdemo.model.ReceiverRequest;
+import uz.mk.springwebclientdemo.model.ResultAsync;
 import uz.mk.springwebclientdemo.model.payload.ApiResponse;
 import uz.mk.springwebclientdemo.model.payload.RequestBodyDTO;
 
@@ -48,23 +51,34 @@ public class ClientService {
         Mono<?> objectMono = null;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
-                String receiverRequestJson = mapper.writeValueAsString(receiverRequest);
-                log.info("Request: " + receiverRequestJson);
+//                String receiverRequestJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(receiverRequest);
+//                log.info("Request: " + receiverRequestJson);
                 assert requestBodyDTO != null;
                 objectMono = webClient.post()
                         .uri(apiUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
-                        .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.just(new Exception("Something went wrong")))
+//                        .onStatus(httpStatus -> httpStatus.value() == HttpStatus.BAD_REQUEST.value(),
+//                                clientResponse -> clientResponse
+//                                        .bodyToMono(ApiResponse.class)
+//                                        .flatMap(apiResponse -> Mono.error(new ResponseStatusException(
+//                                                HttpStatus.BAD_REQUEST,
+//                                                apiResponse.getMessage()
+//                                        )))
+////                                        .map(apiResponse -> new CustomBadRequestException(apiResponse.getMessage()
+////                                        ))
+//                        )
                         .bodyToMono(ApiResponse.class)
-                        .doOnSuccess(apiResponse -> {
+                        .doOnNext(apiResponse -> {
                             try {
-                                log.info("Response: {}",mapper.writeValueAsString(apiResponse));
+                                log.info("Response: {}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(apiResponse));
                             } catch (JsonProcessingException e) {
                                 e.printStackTrace();
                             }
-                        });
+                        })
+                ;
+
 
                 break;
             case GET:
