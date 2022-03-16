@@ -1,7 +1,10 @@
 package uz.mk.springwebclientdemo.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -13,14 +16,18 @@ import uz.mk.springwebclientdemo.model.payload.RequestBodyDTO;
 
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 public class ClientService {
     private final WebClient webClient;
+    private final ObjectMapper mapper;
 
-    public ClientService(WebClient webClient) {
+    public ClientService(WebClient webClient, ObjectMapper mapper) {
         this.webClient = webClient;
+        this.mapper = mapper;
     }
 
+    @SneakyThrows
     public Mono<?> receiver(ReceiverRequest receiverRequest) {
         String apiUrl = receiverRequest.getServiceUrl() + "/" + receiverRequest.getMethodName();
 
@@ -41,6 +48,8 @@ public class ClientService {
         Mono<?> objectMono = null;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
+                String receiverRequestJson = mapper.writeValueAsString(receiverRequest);
+                log.info("Request: " + receiverRequestJson);
                 assert requestBodyDTO != null;
                 objectMono = webClient.post()
                         .uri(apiUrl)
@@ -48,7 +57,15 @@ public class ClientService {
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
                         .onStatus(HttpStatus.BAD_REQUEST::equals, clientResponse -> Mono.just(new Exception("Something went wrong")))
-                        .bodyToMono(ApiResponse.class);
+                        .bodyToMono(ApiResponse.class)
+                        .doOnSuccess(apiResponse -> {
+                            try {
+                                log.info("Response: {}",mapper.writeValueAsString(apiResponse));
+                            } catch (JsonProcessingException e) {
+                                e.printStackTrace();
+                            }
+                        });
+
                 break;
             case GET:
                 boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();

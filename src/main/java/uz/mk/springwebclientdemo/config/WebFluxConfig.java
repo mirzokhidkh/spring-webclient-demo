@@ -9,17 +9,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.ClientHttpRequest;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.logging.AdvancedByteBufFormat;
+import uz.mk.springwebclientdemo.model.payload.ApiResponse;
 
 @Slf4j
 @Configuration
@@ -47,11 +51,10 @@ public class WebFluxConfig implements WebFluxConfigurer {
 
 
         ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient
-                .wiretap(
-                        "reactor.netty.http.client.HttpClient",
-                LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL
-
-                )
+//                .wiretap(true
+//                        "reactor.netty.http.client.HttpClient",
+//                LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL
+//                )
         );
 
 
@@ -66,23 +69,23 @@ public class WebFluxConfig implements WebFluxConfigurer {
                 .build();
     }
 
-    @Override
-    public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
-        configurer.defaultCodecs().enableLoggingRequestDetails(true);
-    }
+//    @Override
+//    public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
+//        configurer.defaultCodecs().enableLoggingRequestDetails(true);
+//    }
 
     private static ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            log.info("Request: {} {}", clientRequest.method(), clientRequest.url());
-            clientRequest.headers().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
+//            log.info("Request: {} {}", clientRequest.method(), clientRequest.url());
+//            clientRequest.headers().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
             return Mono.just(clientRequest);
         });
     }
 
     private static ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            log.info("Response status: {}", clientResponse.statusCode());
-            clientResponse.headers().asHttpHeaders().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
+//            log.info("Response status: {}", clientResponse.statusCode());
+//            clientResponse.headers().asHttpHeaders().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
             return Mono.just(clientResponse);
         });
     }

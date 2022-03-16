@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import uz.mk.springwebclientdemo.model.ReceiverRequest;
 import uz.mk.springwebclientdemo.service.ClientService;
 
-@Slf4j
+//@Slf4j
 @RestController
 public class ClientController {
     private final ClientService clientService;
@@ -29,8 +29,7 @@ public class ClientController {
     @PostMapping(value = "/receive", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<?> receiver(@RequestBody ReceiverRequest receiverRequest) throws JsonProcessingException {
 
-        String receiverRequestJson = mapper.writeValueAsString(receiverRequest);
-        log.info("Request-Body-JSON: " + receiverRequestJson);
+
         Mono<?> mono = clientService.receiver(receiverRequest);
         return mono;
     }
