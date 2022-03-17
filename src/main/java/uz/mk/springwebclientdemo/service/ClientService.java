@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
+import uz.mk.springwebclientdemo.exception.CustomNotFoundException;
+import uz.mk.springwebclientdemo.exception.response.ApiExceptionResponse;
 import uz.mk.springwebclientdemo.exception.CustomBadRequestException;
+import uz.mk.springwebclientdemo.exception.CustomServerErrorException;
 import uz.mk.springwebclientdemo.model.ReceiverRequest;
-import uz.mk.springwebclientdemo.model.ResultAsync;
 import uz.mk.springwebclientdemo.model.payload.ApiResponse;
 import uz.mk.springwebclientdemo.model.payload.RequestBodyDTO;
 
@@ -48,27 +50,20 @@ public class ClientService {
 
         }
 
+        String receiverRequestJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(receiverRequest);
+        log.info("Request: " + receiverRequestJson);
+
         Mono<?> objectMono = null;
         switch (receiverRequest.getHttpMethodType()) {
             case POST:
-//                String receiverRequestJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(receiverRequest);
-//                log.info("Request: " + receiverRequestJson);
+
                 assert requestBodyDTO != null;
                 objectMono = webClient.post()
                         .uri(apiUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
+//                        .exchangeToMono(this::handleResponse)
                         .retrieve()
-//                        .onStatus(httpStatus -> httpStatus.value() == HttpStatus.BAD_REQUEST.value(),
-//                                clientResponse -> clientResponse
-//                                        .bodyToMono(ApiResponse.class)
-//                                        .flatMap(apiResponse -> Mono.error(new ResponseStatusException(
-//                                                HttpStatus.BAD_REQUEST,
-//                                                apiResponse.getMessage()
-//                                        )))
-////                                        .map(apiResponse -> new CustomBadRequestException(apiResponse.getMessage()
-////                                        ))
-//                        )
                         .bodyToMono(ApiResponse.class)
                         .doOnNext(apiResponse -> {
                             try {
@@ -78,8 +73,6 @@ public class ClientService {
                             }
                         })
                 ;
-
-
                 break;
             case GET:
                 boolean isOneResource = Pattern.compile("\\d+").matcher(apiUrl.substring(apiUrl.lastIndexOf('/') + 1)).matches();
@@ -89,7 +82,6 @@ public class ClientService {
                             .uri(apiUrl)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
-                            .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
                             .bodyToMono(ApiResponse.class);
 
                 } else {
@@ -107,14 +99,12 @@ public class ClientService {
                         .uri(apiUrl)
                         .body(Mono.just(requestBodyDTO), RequestBodyDTO.class)
                         .retrieve()
-                        .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
                         .bodyToMono(ApiResponse.class);
                 break;
             case DELETE:
                 objectMono = webClient.delete()
                         .uri(apiUrl)
                         .retrieve()
-                        .onStatus(HttpStatus.NOT_FOUND::equals, clientResponse -> Mono.empty())
                         .bodyToMono(ApiResponse.class);
                 break;
             default:
@@ -122,5 +112,35 @@ public class ClientService {
         }
 
         return objectMono;
+    }
+
+    private Mono<?> handleResponse(ClientResponse response) {
+        if (response.statusCode().isError()) {
+            HttpStatus status = response.statusCode();
+
+
+            if (HttpStatus.NOT_FOUND.equals(status)) {
+                return response.bodyToMono(ApiExceptionResponse.class)
+                        .flatMap(exResponse -> {
+                            log.debug("Body is {}", exResponse);
+                            return Mono.error(new CustomNotFoundException(exResponse.getMessage()));
+                        });
+            } else if (HttpStatus.BAD_REQUEST.equals(status)) {
+                return response.bodyToMono(ApiExceptionResponse.class)
+                        .flatMap(exResponse -> {
+                            log.debug("Body is {}", exResponse);
+                            return Mono.error(new CustomBadRequestException(exResponse.getMessage()));
+                        });
+            } else if (HttpStatus.INTERNAL_SERVER_ERROR.equals(status)) {
+                return response.bodyToMono(ApiExceptionResponse.class)
+                        .flatMap(exResponse -> {
+                            log.debug("Body is {}", exResponse);
+                            return Mono.error(new CustomServerErrorException("Something went wrong. Please wait a minute !"));
+                        });
+            }
+
+        }
+
+        return response.bodyToMono(ApiResponse.class);
     }
 }

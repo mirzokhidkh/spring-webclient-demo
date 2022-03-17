@@ -53,8 +53,8 @@ public class WebFluxConfig implements WebFluxConfigurer {
                 .clientConnector(connector)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .filters(exchangeFilterFunctions -> {
-//                    exchangeFilterFunctions.add(WebClientFilter.logRequest());
-//                    exchangeFilterFunctions.add(WebClientFilter.logResponse());
+                    exchangeFilterFunctions.add(WebClientFilter.logRequest());
+                    exchangeFilterFunctions.add(WebClientFilter.logResponse());
                     exchangeFilterFunctions.add(WebClientFilter.errorHandler());
                 })
                 .build();
